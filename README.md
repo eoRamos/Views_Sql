@@ -32,34 +32,40 @@ pf_forn_id int references fornecedores (frn_id),
 primary key (pf_prod_id, pf_forn_id)
 );
 
--- Cria a view que mostra todos os produtos e suas respectivas marcas
-CREATE VIEW produtos_e_marcas AS
-SELECT p.nome AS produto, m.nome AS marca
-FROM produtos p
-INNER JOIN marcas m ON p.marca_id = m.id;
+CREATE VIEW produtos_com_marcas AS
+SELECT prd.*, mrc.mrc_nome AS marca_nome
+FROM produtos prd
+JOIN marcas mrc ON prd.prd_marcaid = mrc.mrc_id;
 
--- Cria a view que mostra todos os produtos e seus respectivos fornecedores
-CREATE VIEW produtos_e_fornecedores AS
-SELECT p.nome AS produto, f.nome AS fornecedor
-FROM produtos p
-INNER JOIN fornecedores f ON p.fornecedor_id = f.id;
+CREATE VIEW produtos_com_fornecedores AS
+SELECT prd.*, frn.frn_nome AS fornecedor_nome
+FROM produtos prd
+JOIN produto_fornecedor pf ON prd.prd_id = pf.pf_prod_id
+JOIN fornecedores frn ON pf.pf_forn_id = frn.frn_id;
 
--- Cria a view que mostra todos os produtos, seus respectivos fornecedores e marcas
-CREATE VIEW produtos_fornecedores_marcas AS
-SELECT p.nome AS produto, f.nome AS fornecedor, m.nome AS marca
-FROM produtos p
-INNER JOIN fornecedores f ON p.fornecedor_id = f.id
-INNER JOIN marcas m ON p.marca_id = m.id;
+CREATE VIEW produtos_com_fornecedores_marcas AS
+SELECT prd.*, mrc.mrc_nome AS marca_nome, frn.frn_nome AS fornecedor_nome
+FROM produtos prd
+JOIN marcas mrc ON prd.prd_marcaid = mrc.mrc_id
+JOIN produto_fornecedor pf ON prd.prd_id = pf.pf_prod_id
+JOIN fornecedores frn ON pf.pf_forn_id = frn.frn_id;
 
--- Cria a view que mostra todos os produtos com estoque abaixo do mínimo
-CREATE VIEW produtos_com_estoque_baixo AS
+CREATE VIEW produtos_estoque_minimo AS
 SELECT *
 FROM produtos
-WHERE estoque < estoque_minimo;
+WHERE prd_qtd_estoque < prd_estoque_min;
 
--- Cria a view que mostra todos os produtos e suas respectivas marcas com validade vencida
-CREATE VIEW produtos_com_validade_vencida AS
-SELECT p.nome AS produto, m.nome AS marca, p.data_validade
-FROM produtos p
-INNER JOIN marcas m ON p.marca_id = m.id
-WHERE p.data_validade < CURRENT_DATE;
+ALTER TABLE produtos
+ADD COLUMN prd_data_validade DATE;
+
+-- Exemplo de inserção de novos produtos com data de validade
+INSERT INTO produtos (prd_nome, prd_qtd_estoque, prd_estoque_min, prd_dat_fabricacao, prd_perecivel, prd_valor, prd_marcaid, prd_data_validade)
+VALUES ('Produto 1', 10, 5, NOW(), true, 20.00, 1, '2024-04-30'),
+       ('Produto 2', 20, 10, NOW(), false, 15.50, 2, '2024-06-15');
+
+CREATE VIEW produtos_vencidos AS
+SELECT prd.*, mrc.mrc_nome AS marca_nome
+FROM produtos prd
+JOIN marcas mrc ON prd.prd_marcaid = mrc.mrc_id
+WHERE prd.prd_data_validade < CURDATE();
+
